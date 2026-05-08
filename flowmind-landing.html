@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FlowMind — AI Automations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050608;
+      --surface: #0d0f14;
+      --border: rgba(255,255,255,0.07);
+      --text: #e8e9ef;
+      --muted: #6b7080;
+      --accent: #b8ff57;
+      --accent2: #57d4ff;
+      --accent3: #ff6b6b;
+      --glow: rgba(184,255,87,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ---- NOISE OVERLAY ---- */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* ---- MESH BACKGROUND ---- */
+    .mesh {
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(184,255,87,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 80% 80%, rgba(87,212,255,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(255,107,107,0.03) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ---- NAV ---- */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(5,6,8,0.7);
+      backdrop-filter: blur(20px);
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .logo span { color: var(--accent); }
+
+    .nav-tag {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    /* ---- HERO ---- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(184,255,87,0.3);
+      background: rgba(184,255,87,0.05);
+      padding: 8px 18px;
+      border-radius: 30px;
+      margin-bottom: 36px;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(52px, 9vw, 110px);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -3px;
+      margin-bottom: 28px;
+      animation: fadeUp 0.8s 0.1s ease both;
+    }
+
+    h1 .line2 {
+      display: block;
+      -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+      color: transparent;
+    }
+
+    h1 .accent-word { color: var(--accent); }
+
+    .hero-sub {
+      max-width: 520px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.8;
+      margin-bottom: 52px;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+
+    /* ---- WAITLIST FORM ---- */
+    .waitlist-box {
+      animation: fadeUp 0.8s 0.3s ease both;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0;
+      border: 1px solid rgba(184,255,87,0.3);
+      border-radius: 6px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.03);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .input-row:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(184,255,87,0.1), 0 0 30px rgba(184,255,87,0.1);
+    }
+
+    .input-row input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      padding: 16px 20px;
+    }
+
+    .input-row input::placeholder { color: var(--muted); }
+
+    .btn-join {
+      background: var(--accent);
+      color: #050608;
+      border: none;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      padding: 16px 28px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-join:hover { background: #d4ff7a; }
+    .btn-join:active { transform: scale(0.97); }
+
+    .waitlist-meta {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .waitlist-meta span::before { content: '✓  '; color: var(--accent); }
+
+    /* ---- SUCCESS STATE ---- */
+    .success-msg {
+      display: none;
+      background: rgba(184,255,87,0.08);
+      border: 1px solid rgba(184,255,87,0.3);
+      border-radius: 6px;
+      padding: 20px 28px;
+      color: var(--accent);
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* ---- SCROLL INDICATOR ---- */
+    .scroll-hint {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      animation: fadeUp 1s 0.8s ease both;
+    }
+
+    .scroll-line {
+      width: 1px; height: 40px;
+      background: linear-gradient(to bottom, var(--muted), transparent);
+      animation: scrollPulse 2s ease infinite;
+    }
+
+    @keyframes scrollPulse {
+      0%, 100% { opacity: 0.3; transform: scaleY(1); }
+      50% { opacity: 1; transform: scaleY(1.2); }
+    }
+
+    /* ---- STATS BAR ---- */
+    .stats-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 24px 40px;
+      display: flex;
+      justify-content: center;
+      gap: 80px;
+      overflow: hidden;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .stat-num span { color: var(--accent); }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* ---- HOW IT WORKS ---- */
+    section { padding: 100px 24px; max-width: 1100px; margin: 0 auto; }
+
+    .section-tag {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      margin-bottom: 60px;
+    }
+
+    /* ---- STEPS ---- */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 2px;
+    }
+
+    .step {
+      background: var(--surface);
+      padding: 40px 36px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s;
+    }
+
+    .step:hover { background: #131520; }
+
+    .step::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--glow) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .step:hover::after { opacity: 1; }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.04);
+      line-height: 1;
+      margin-bottom: 16px;
+      letter-spacing: -3px;
+    }
+
+    .step-icon {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .step h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.3px;
+    }
+
+    .step p { color: var(--muted); line-height: 1.7; font-size: 14px; }
+
+    /* ---- FEATURES ---- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .feature {
+      background: var(--bg);
+      padding: 40px 36px;
+      transition: background 0.3s;
+      position: relative;
+    }
+
+    .feature:hover { background: #080a0f; }
+
+    .feature-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-bottom: 24px;
+      box-shadow: 0 0 12px var(--accent);
+    }
+
+    .feature h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.2px;
+    }
+
+    .feature p { color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+    .feature-tag {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 20px;
+      padding: 4px 10px;
+      border-radius: 3px;
+    }
+
+    .tag-green { background: rgba(184,255,87,0.1); color: var(--accent); }
+    .tag-blue { background: rgba(87,212,255,0.1); color: var(--accent2); }
+    .tag-red { background: rgba(255,107,107,0.1); color: var(--accent3); }
+
+    /* ---- MARQUEE ---- */
+    .marquee-section {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .marquee-track {
+      display: flex;
+      gap: 48px;
+      animation: marquee 20s linear infinite;
+      width: max-content;
+    }
+
+    .marquee-item {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .marquee-item::after {
+      content: '◆';
+      color: var(--accent);
+      font-size: 8px;
+    }
+
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* ---- CTA SECTION ---- */
+    .cta-section {
+      text-align: center;
+      padding: 120px 24px;
+      position: relative;
+    }
+
+    .cta-glow {
+      position: absolute;
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(184,255,87,0.08) 0%, transparent 70%);
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 24px;
+    }
+
+    .cta-section p {
+      color: var(--muted);
+      max-width: 440px;
+      margin: 0 auto 48px;
+      line-height: 1.8;
+    }
+
+    .cta-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ---- FOOTER ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    footer .logo { font-size: 16px; }
+
+    /* ---- ANIMATIONS ---- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ---- COUNTER ANIMATION ---- */
+    .counting { display: inline-block; }
+
+    /* ---- MOBILE ---- */
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      .stats-bar { gap: 40px; flex-wrap: wrap; padding: 20px; }
+      .input-row { flex-direction: column; }
+      .btn-join { width: 100%; padding: 14px; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mesh"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Flow<span>Mind</span></div>
+  <div class="nav-tag">Early Access</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Now accepting early access</div>
+
+  <h1>
+    Automate<br/>
+    <span class="line2">Every<span class="accent-word">thing</span>.</span>
+  </h1>
+
+  <p class="hero-sub">
+    FlowMind connects your tools, data, and workflows with intelligent AI agents that work while you sleep. No code. No friction. Just results.
+  </p>
+
+  <div class="waitlist-box" id="hero-form-box">
+    <div class="input-row">
+      <input type="email" id="hero-email" placeholder="your@email.com" autocomplete="email"/>
+      <button class="btn-join" onclick="joinWaitlist('hero')">Join Waitlist →</button>
+    </div>
+    <div class="waitlist-meta">
+      <span>Free forever tier</span>
+      <span>No spam</span>
+      <span>Early access perks</span>
+    </div>
+  </div>
+  <div class="success-msg" id="hero-success">
+    🎉 You're on the list! We'll be in touch soon.
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num"><span class="counting" data-target="2400">0</span>+</div>
+    <div class="stat-label">Waitlist spots filled</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num"><span class="counting" data-target="87">0</span>%</div>
+    <div class="stat-label">Time saved on average</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num"><span class="counting" data-target="50">0</span>+</div>
+    <div class="stat-label">Integrations at launch</div>
+  </div>
+</div>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track">
+    <span class="marquee-item">Slack</span>
+    <span class="marquee-item">Notion</span>
+    <span class="marquee-item">Gmail</span>
+    <span class="marquee-item">Airtable</span>
+    <span class="marquee-item">Shopify</span>
+    <span class="marquee-item">HubSpot</span>
+    <span class="marquee-item">Stripe</span>
+    <span class="marquee-item">Linear</span>
+    <span class="marquee-item">Zapier</span>
+    <span class="marquee-item">Salesforce</span>
+    <span class="marquee-item">Jira</span>
+    <span class="marquee-item">Google Sheets</span>
+    <span class="marquee-item">Slack</span>
+    <span class="marquee-item">Notion</span>
+    <span class="marquee-item">Gmail</span>
+    <span class="marquee-item">Airtable</span>
+    <span class="marquee-item">Shopify</span>
+    <span class="marquee-item">HubSpot</span>
+    <span class="marquee-item">Stripe</span>
+    <span class="marquee-item">Linear</span>
+    <span class="marquee-item">Zapier</span>
+    <span class="marquee-item">Salesforce</span>
+    <span class="marquee-item">Jira</span>
+    <span class="marquee-item">Google Sheets</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div style="background: var(--surface);">
+<section class="reveal">
+  <div class="section-tag">// How it works</div>
+  <h2>Set it once.<br/>Let it run forever.</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-icon">🔗</div>
+      <h3>Connect your stack</h3>
+      <p>Link your existing tools in minutes. FlowMind speaks to 50+ integrations out of the box — no API keys to wrangle.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-icon">🧠</div>
+      <h3>Describe in plain English</h3>
+      <p>Tell FlowMind what you want to automate. Our AI translates your words into precise, reliable workflows.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-icon">⚡</div>
+      <h3>Watch it run</h3>
+      <p>Agents run in the background, learn from outcomes, and get smarter over time. You just review the results.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- FEATURES -->
+<section class="reveal">
+  <div class="section-tag">// Capabilities</div>
+  <h2>Everything you need<br/>to automate at scale.</h2>
+
+  <div class="features-grid">
+    <div class="feature">
+      <div class="feature-dot"></div>
+      <h3>Intelligent Agents</h3>
+      <p>AI agents that reason, plan, and execute multi-step workflows. They don't just trigger — they think.</p>
+      <div class="feature-tag tag-green">Core</div>
+    </div>
+    <div class="feature">
+      <div class="feature-dot" style="background: var(--accent2); box-shadow: 0 0 12px var(--accent2);"></div>
+      <h3>Real-time Triggers</h3>
+      <p>React to events as they happen — new emails, Slack messages, form submissions, or any webhook.</p>
+      <div class="feature-tag tag-blue">Live</div>
+    </div>
+    <div class="feature">
+      <div class="feature-dot" style="background: var(--accent3); box-shadow: 0 0 12px var(--accent3);"></div>
+      <h3>Data Enrichment</h3>
+      <p>Automatically enrich leads, contacts, and records with AI-sourced context from the web.</p>
+      <div class="feature-tag tag-red">Beta</div>
+    </div>
+    <div class="feature">
+      <div class="feature-dot"></div>
+      <h3>Natural Language Builder</h3>
+      <p>No flowchart editors. Describe what you want in plain English and FlowMind builds the automation.</p>
+      <div class="feature-tag tag-green">Core</div>
+    </div>
+    <div class="feature">
+      <div class="feature-dot" style="background: var(--accent2); box-shadow: 0 0 12px var(--accent2);"></div>
+      <h3>Audit & Replay</h3>
+      <p>Full execution history. Replay any run, inspect every decision, and understand exactly what happened.</p>
+      <div class="feature-tag tag-blue">Pro</div>
+    </div>
+    <div class="feature">
+      <div class="feature-dot" style="background: var(--accent3); box-shadow: 0 0 12px var(--accent3);"></div>
+      <h3>Team Workflows</h3>
+      <p>Share automations across your team. Set permissions, review approvals, and collaborate at scale.</p>
+      <div class="feature-tag tag-red">Team</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section reveal">
+  <div class="cta-glow"></div>
+  <h2>Stop doing it<br/>manually.</h2>
+  <p>Join 2,400+ founders and operators already on the waitlist. Early access opens soon.</p>
+
+  <div class="cta-form" id="cta-form-box">
+    <div class="input-row" style="width:100%;">
+      <input type="email" id="cta-email" placeholder="your@email.com" autocomplete="email"/>
+      <button class="btn-join" onclick="joinWaitlist('cta')">Get Early Access →</button>
+    </div>
+  </div>
+  <div class="success-msg" id="cta-success" style="margin: 0 auto; max-width: 480px;">
+    🎉 You're on the list! We'll be in touch soon.
+  </div>
+  <div style="margin-top: 20px; color: var(--muted); font-size: 12px;">
+    No credit card required · Cancel anytime · Privacy first
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">Flow<span style="color:var(--accent)">Mind</span></div>
+  <div>AI Automations for modern teams.</div>
+  <div>© 2026 FlowMind. All rights reserved.</div>
+</footer>
+
+<script>
+  // ---- WAITLIST LOGIC ----
+  const waitlist = JSON.parse(localStorage.getItem('fm_waitlist') || '[]');
+
+  function joinWaitlist(form) {
+    const emailEl = document.getElementById(form + '-email');
+    const formBox = document.getElementById(form + '-form-box');
+    const successEl = document.getElementById(form + '-success');
+    const email = emailEl ? emailEl.value.trim() : '';
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      emailEl.style.outline = '1px solid #ff6b6b';
+      emailEl.placeholder = 'Enter a valid email';
+      setTimeout(() => {
+        emailEl.style.outline = '';
+        emailEl.placeholder = 'your@email.com';
+      }, 2000);
+      return;
+    }
+
+    if (!waitlist.includes(email)) {
+      waitlist.push(email);
+      localStorage.setItem('fm_waitlist', JSON.stringify(waitlist));
+    }
+
+    // Update count display
+    document.querySelectorAll('.counting').forEach(el => {
+      if (el.dataset.target === '2400') {
+        el.dataset.target = String(parseInt(el.dataset.target) + 1);
+        el.textContent = el.dataset.target;
+      }
+    });
+
+    formBox.style.display = 'none';
+    successEl.style.display = 'block';
+  }
+
+  // Allow Enter key
+  document.querySelectorAll('input[type="email"]').forEach(input => {
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const id = input.id.replace('-email', '');
+        joinWaitlist(id);
+      }
+    });
+  });
+
+  // ---- COUNTER ANIMATION ----
+  function animateCounters() {
+    document.querySelectorAll('.counting').forEach(el => {
+      const target = parseInt(el.dataset.target);
+      const duration = 1800;
+      const start = performance.now();
+      function step(now) {
+        const p = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(ease * target);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  // ---- REVEAL ON SCROLL ----
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        if (entry.target.classList.contains('stats-bar')) animateCounters();
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Observe stats bar
+  const statsBar = document.querySelector('.stats-bar');
+  if (statsBar) observer.observe(statsBar);
+</script>
+
+</body>
+</html>
